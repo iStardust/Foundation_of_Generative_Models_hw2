@@ -19,7 +19,7 @@ class Hparams:
         n_steps=100,
         linear_start=1e-4,
         linear_end=2e-2,
-        lr=1e-3,
+        lr=1e-4,
         weight_decay=1e-4,
         lr_decay_step=2,
         lr_decay_factor=0.3,

@@ -26,8 +26,8 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a model")
-    parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=6)
+    parser.add_argument("--num_workers", type=int, default=8)
 
     parser.add_argument("--channels", type=int, default=32)
     parser.add_argument("--n_res_blocks", type=int, default=1)
@@ -41,7 +41,7 @@ def parse_args():
     parser.add_argument("--lr_decay_step", type=int, default=2)
     parser.add_argument("--lr_decay_factor", type=float, default=0.3)
 
-    parser.add_argument("--output_dir", type=str, default="outputs")
+    parser.add_argument("--output_dir", type=str, default="outputs\default")
     parser.add_argument("--max_epoch", type=int, default=8)
     return parser.parse_args()
 

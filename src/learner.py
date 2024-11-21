@@ -57,7 +57,8 @@ class Learner:
 
         self.step = 0
         self.epoch = 0
-        self.running_loss = []
+        self.running_loss_per_50_step = []
+        self.running_loss_per_2000_step = []
 
         self.train_dataloader = get_train_dataloader(hparams)
         self.best_loss = 1e10
@@ -116,7 +117,7 @@ class Learner:
         os.symlink(save_name, link_fpath)
 
     def save_to_checkpoint(self, fname="weights", is_best=False):
-        save_name = f"{fname}-{self.epoch}.pt"
+        save_name = f"{fname}-{self.step}.pt"
         save_fpath = f"{self.checkpoint_dir}/{save_name}"
         link_best_fpath = f"{self.checkpoint_dir}/{fname}_best.pt"
         link_fpath = f"{self.checkpoint_dir}/{fname}.pt"
@@ -132,19 +133,17 @@ class Learner:
         )
         print(f"Number of parameters: {num_paras}")
 
+        self.running_loss_per_50_step = []
+        self.running_loss_per_2000_step = []
+
         for epoch in range(self.epoch, self.hparams.max_epoch):
             self.epoch = epoch
-            epoch_loss = self.train_epoch()
-            is_best = False
-            if epoch_loss < self.best_loss:
-                self.best_loss = epoch_loss
-                is_best = True
-            self.save_to_checkpoint(is_best=is_best)
+            self.train_epoch()
+            self.scheduler.step()
 
     def train_epoch(self):
         self.diffusion.train()
-        self.running_loss = []
-        epoch_loss = []
+
         for batch in tqdm(self.train_dataloader):
             batch_images, batch_labels = batch
             batch_images = batch_images.to(self.hparams.device)
@@ -154,12 +153,20 @@ class Learner:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            self.running_loss.append(loss.item())
-            epoch_loss.append(loss.item())
+            self.running_loss_per_50_step.append(loss.item())
+            self.running_loss_per_2000_step.append(loss.item())
             if self.step % 50 == 0:
-                step_loss = np.mean(self.running_loss)
-                self.running_loss = []
-                self.summary_writer.add_scalar("train/loss", step_loss, self.step)
+                loss_per_50 = np.mean(self.running_loss_per_50_step)
+                self.running_loss_per_50_step = []
+                self.summary_writer.add_scalar("train/loss", loss_per_50, self.step)
+
+                if self.step % 2000 == 0:
+                    loss_per_2000 = np.mean(self.running_loss_per_2000_step)
+                    is_best = False
+                    if loss_per_2000 < self.best_loss:
+                        self.best_loss = loss_per_2000
+                        is_best = True
+                    self.save_to_checkpoint(is_best=is_best)
 
             self.step += 1
-        return np.mean(epoch_loss)
+        return
